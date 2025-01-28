@@ -1,150 +1,79 @@
-# AutoScraper: A Smart, Automatic, Fast and Lightweight Web Scraper for Python
+# Selenium Email Scraper: A Smart, Efficient, and Lightweight Web Scraper for Emails
 
-![img](https://user-images.githubusercontent.com/17881612/91968083-5ee92080-ed29-11ea-82ec-d99ec85367a5.png)
+This project is designed to simplify web scraping by automatically extracting email addresses (and optionally names) from web pages and saving them into an Excel file.
 
-This project is made for automatic web scraping to make scraping easy. 
-It gets a url or the html content of a web page and a list of sample data which we want to scrape from that page. **This data can be text, url or any html tag value of that page.** It learns the scraping rules and returns the similar elements. Then you can use this learned object with new urls to get similar content or the exact same element of those new pages.
+It utilizes **Selenium**, a powerful browser automation tool, to load and scrape dynamic content from websites effectively. With just a few lines of code, you can scrape emails from any webpage.
 
+## Features
+
+- Extracts email addresses from web pages efficiently.
+- Optionally extracts associated names (based on HTML structure).
+- Saves results in a clean, organized Excel file.
+- Supports dynamic content scraping using Selenium.
 
 ## Installation
 
-It's compatible with python 3.
+To use this project, make sure you have **Python 3.x** installed. Then, install the required libraries:
 
-- Install latest version from git repository using pip:
 ```bash
-$ pip install git+https://github.com/alirezamika/autoscraper.git
+pip install selenium pandas openpyxl
 ```
 
-- Install from PyPI:
+Additionally, ensure that you have **ChromeDriver** installed and its path correctly set.
+
+## How to Use
+
+### 1. Setting Up
+
+1. Clone this repository:
+    ```bash
+    git clone https://github.com/AymanAsaad27/webscraper.git
+    ```
+2. Navigate to the project directory:
+    ```bash
+    cd webscraper
+    ```
+3. Ensure you have the correct version of ChromeDriver for your browser and update the `driver_path` in the code.
+
+### 2. Running the Scraper
+
+Modify the script as necessary (e.g., changing the target URL) and run:
+
 ```bash
-$ pip install autoscraper
+python selenium_email_scraper.py
 ```
 
-- Install from source:
-```bash
-$ python setup.py install
-```
+The extracted emails (and optionally names) will be saved to an Excel file named `emails_with_names.xlsx`.
 
-## How to use
+### Example Code
 
-### Getting similar results
-
-Say we want to fetch all related post titles in a stackoverflow page:
+Here is a sample snippet from the project:
 
 ```python
-from autoscraper import AutoScraper
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+import time
+import re
+import pandas as pd
 
-url = 'https://stackoverflow.com/questions/2081586/web-scraping-with-python'
+# Set up WebDriver
+service = Service(driver_path)
+chrome_options = Options()
+chrome_options.add_argument("--headless")
 
-# We can add one or multiple candidates here.
-# You can also put urls here to retrieve urls.
-wanted_list = ["What are metaclasses in Python?"]
+# Navigate to the webpage
+driver = webdriver.Chrome(service=service, options=chrome_options)
+driver.get("https://www.swpu.edu.cn/jdy/szdw/sss.htm")
+time.sleep(3)
 
-scraper = AutoScraper()
-result = scraper.build(url, wanted_list)
-print(result)
+# Extract emails and save to Excel
+page_source = driver.page_source
+emails = re.findall(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", page_source)
+data = [{"Email": email} for email in emails]
+df = pd.DataFrame(data)
+df.to_excel("emails_with_names.xlsx", index=False)
+
+# Quit WebDriver
+driver.quit()
 ```
-
-Here's the output:
-```python
-[
-    'How do I merge two dictionaries in a single expression in Python (taking union of dictionaries)?', 
-    'How to call an external command?', 
-    'What are metaclasses in Python?', 
-    'Does Python have a ternary conditional operator?', 
-    'How do you remove duplicates from a list whilst preserving order?', 
-    'Convert bytes to a string', 
-    'How to get line count of a large file cheaply in Python?', 
-    "Does Python have a string 'contains' substring method?", 
-    'Why is “1000000000000000 in range(1000000000000001)” so fast in Python 3?'
-]
-```
-Now you can use the `scraper` object to get related topics of any stackoverflow page:
-```python
-scraper.get_result_similar('https://stackoverflow.com/questions/606191/convert-bytes-to-a-string')
-```
-
-### Getting exact result
-
-Say we want to scrape live stock prices from yahoo finance:
-
-```python
-from autoscraper import AutoScraper
-
-url = 'https://finance.yahoo.com/quote/AAPL/'
-
-wanted_list = ["124.81"]
-
-scraper = AutoScraper()
-
-# Here we can also pass html content via the html parameter instead of the url (html=html_content)
-result = scraper.build(url, wanted_list)
-print(result)
-```
-Note that you should update the `wanted_list` if you want to copy this code, as the content of the page dynamically changes.
-
-You can also pass any custom `requests` module parameter. for example you may want to use proxies or custom headers:
-
-```python
-proxies = {
-    "http": 'http://127.0.0.1:8001',
-    "https": 'https://127.0.0.1:8001',
-}
-
-result = scraper.build(url, wanted_list, request_args=dict(proxies=proxies))
-```
-
-Now we can get the price of any symbol:
-
-```python
-scraper.get_result_exact('https://finance.yahoo.com/quote/MSFT/')
-```
-
-**You may want to get other info as well.** For example if you want to get market cap too, you can just append it to the wanted list. By using the `get_result_exact` method, it will retrieve the data as the same exact order in the wanted list.
-
-**Another example:** Say we want to scrape the about text, number of stars and the link to issues of Github repo pages:
-
-```python
-from autoscraper import AutoScraper
-
-url = 'https://github.com/alirezamika/autoscraper'
-
-wanted_list = ['A Smart, Automatic, Fast and Lightweight Web Scraper for Python', '6.2k', 'https://github.com/alirezamika/autoscraper/issues']
-
-scraper = AutoScraper()
-scraper.build(url, wanted_list)
-```
-
-Simple, right?
-
-
-### Saving the model
-
-We can now save the built model to use it later. To save:
-
-```python
-# Give it a file path
-scraper.save('yahoo-finance')
-```
-
-And to load:
-
-```python
-scraper.load('yahoo-finance')
-```
-
-## Tutorials
-
-- See [this gist](https://gist.github.com/alirezamika/72083221891eecd991bbc0a2a2467673) for more advanced usages.
-- [AutoScraper and Flask: Create an API From Any Website in Less Than 5 Minutes](https://medium.com/better-programming/autoscraper-and-flask-create-an-api-from-any-website-in-less-than-5-minutes-3f0f176fc4a3)
-
-## Issues
-Feel free to open an issue if you have any problem using the module.
-
-
-## Support the project
-
-<a href="https://www.buymeacoffee.com/alirezam" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-black.png" alt="Buy Me A Coffee" height="45" width="163" ></a>
-
-
-#### Happy Coding  ♥️
